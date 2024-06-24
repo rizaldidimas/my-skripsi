@@ -1,74 +1,82 @@
-numCities = 9;
-numAnts = 10;
-numIterations = 100;
-alpha = 1;  % pengaruh pheromone
-beta = 2;   % pengaruh jarak
-evaporationRate = 0.5;
-pheromoneInit = 1 / (numCities * mean(mean(d))); % Inisialisasi pheromone
+distance_matrix = [
+    0, 29, 20, 21, 16;
+    29, 0, 15, 17, 28;
+    20, 15, 0, 28, 18;
+    21, 17, 28, 0, 25;
+    16, 28, 18, 25, 0
+];
+% ACO parameters
+num_ants = 10;
+num_iterations = 100;
+pheromone_evaporation = 0.5;
+alpha = 1.0;
+beta = 2.0;
+% Initialize pheromone levels on each edge
+pheromones = ones(size(distance_matrix));
+% Main ACO algorithm
+for iteration = 1:num_iterations
+    ant_tours = {};
 
-pheromone = pheromoneInit * ones(numCities, numCities);
+    for ant = 1:num_ants
+        % Initialize an empty tour for each ant
+        tour = [1];  % Start from city 1 (MATLAB indexing starts from 1)
 
-function probs = computeProbabilities(pheromone, d, alpha, beta, visited)
-    tau_eta = (pheromone.^alpha) .* ((1.0 ./ d).^beta);
-    tau_eta(visited) = 1; % Hapus kota yang sudah dikunjungi dari probabilitas
-    total = sum(tau_eta);
-    probs = tau_eta / total;
-end
+        % Construct a tour by moving to other cities
+        while length(tour) < size(distance_matrix, 1)
+            current_city = tour(end);
+            unvisited_cities = setdiff(1:size(distance_matrix, 1), tour);
 
-bestRoute = [];
-bestRouteLength = inf;
+            % Calculate the probabilities to move to unvisited cities
+            probabilities = [];
+            total_prob = 0;
+            for city = unvisited_cities
+                pheromone = pheromones(current_city, city);
+                distance = distance_matrix(current_city, city);
+                probability = (pheromone ^ alpha) * (1 / distance) ^ beta;
+                probabilities = [probabilities, probability];
+                total_prob = total_prob + probability;
+            end
+% Select the next city using roulette wheel selection
+            roulette = rand() * total_prob;
+            selected_city = [];
+            for i = 1:length(probabilities)
+                roulette = roulette - probabilities(i);
+                if roulette <= 0
+                    selected_city = unvisited_cities(i);
+                    break;
+                end
+            end
 
-for iter = 1:numIterations
-    routes = zeros(numAnts, numCities);
-    routeLengths = zeros(numAnts, 1);
-
-    for k = 1:numAnts
-        visited = zeros(1, numCities);
-        startCity = randi(numCities);
-        currentCity = startCity;
-        route = currentCity;
-        visited(currentCity) = 1;
-
-        for step = 2:numCities
-            probs = computeProbabilities(pheromone, d, alpha, beta, visited);
-            nextCity = rouletteWheelSelection(probs);
-            route = [route, nextCity];
-            visited(nextCity) = 1;
-            currentCity = nextCity;
+            tour = [tour, selected_city];
         end
 
-        route = [route, startCity]; % kembali ke kota awal
-        routes(k, :) = route;
-        routeLengths(k) = calculateRouteLength(route, d);
-
-        if routeLengths(k) < bestRouteLength
-            bestRoute = route;
-            bestRouteLength = routeLengths(k);
+        % Add the last edge to return to the starting city
+        tour = [tour, tour(1)];
+        ant_tours{ant} = tour;
+    end
+  % Update pheromone levels
+    pheromones = pheromones * (1 - pheromone_evaporation);
+    for ant = 1:num_ants
+        tour = ant_tours{ant};
+        tour_length = sum(distance_matrix(tour(1:end-1), tour(2:end)));
+        for i = 1:length(tour) - 1
+            pheromones(tour(i), tour(i+1)) = pheromones(tour(i), tour(i+1)) + 1 / tour_length;
         end
     end
 
-    % Update pheromone
-    pheromone = (1 - evaporationRate) * pheromone;
-
-    for k = 1:numAnts
-        for step = 1:(numCities-1)
-            i = routes(k, step);
-            j = routes(k, step+1);
-            pheromone(i, j) = pheromone(i, j) + 1 / routeLengths(k);
-            pheromone(j, i) = pheromone(i, j); % simetris
+    % Find the best tour of this iteration
+    best_length = Inf;
+    best_tour = [];
+    for ant = 1:num_ants
+        tour = ant_tours{ant};
+        tour_length = sum(distance_matrix(tour(1:end-1), tour(2:end)));
+        if tour_length < best_length
+            best_length = tour_length;
+            best_tour = tour;
         end
-    end
-end
+        end
 
-function nextCity = rouletteWheelSelection(probs)
-    cumulativeSum = cumsum(probs);
-    r = rand();
-    nextCity = find(cumulativeSum >= r, 1);
+    disp(['Iteration ', num2str(iteration), ': Best tour length = ', num2str(best_length), ', Best tour = ', num2str(best_tour)]);
 end
-
-function length = calculateRouteLength(route, d)
-    length = 0;
-    for i = 1:(length(route)-1)
-        length = length + d(route(i), route(i+1));
-    end
-end
+% Print the best tour found
+disp(['Best tour found: ', num2str(best_tour)]);
