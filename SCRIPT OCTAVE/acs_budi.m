@@ -1,6 +1,6 @@
-function [besttour,mincost]=acs_budi(mjarak,iter,n_ants);
+function [besttour,mincost]=acs_budi(d,iter,n_ants);
 	m=n_ants;
-	n=lenght(mjarak);
+	n=lenght(d);
 	e=.5;
 	alpha=2;
 	beta=1;
