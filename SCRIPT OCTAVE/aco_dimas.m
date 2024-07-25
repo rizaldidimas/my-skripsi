@@ -74,7 +74,13 @@ function best_route = ant_colony_optimization(dist_matrix, num_ants, num_iterati
       best_route = routes(best_ant, :);
     end
 
-    % Menampilkan rute terbaik dalam iterasi ini
+    % Menampilkan rute setiap semut dalam iterasi ini
+    %fprintf('Iteration %d: \n', iteration);
+    %for iterations = 1:num_iterations
+    %  fprintf('Iterasi %d: Route = %s\n', ant, mat2str(routes(ant, :)));
+    %end
+
+    % Menampilkan urutan titik kunjungan pada setiap iterasi
     fprintf('Iteration %d: Best route = %s, Length = %.2f\n', iteration, mat2str(best_route), best_route_length);
   end
 
@@ -88,7 +94,7 @@ function probabilities = calculate_transition_probabilities(current_city, visite
   probabilities = zeros(1, num_cities);
   for city = 1:num_cities
     if ~visited(city)
-      probabilities(city) = (pheromone_matrix(current_city, city) ^ alpha) * ((1 / dist_matrix[current_city, city)) ^ beta);
+      probabilities(city) = (pheromone_matrix(current_city, city) ^ alpha) * ((1 / dist_matrix(current_city, city)) ^ beta);
     end
   end
   probabilities = probabilities / sum(probabilities);
